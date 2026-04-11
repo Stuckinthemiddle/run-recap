@@ -29,7 +29,7 @@ export default function App() {
       <div style={styles.card}>
         <header style={styles.header}>
           <div>
-            <h1 style={styles.h1}>Run Recap</h1>
+            <h1 style={styles.h1}>Runner Recap!</h1>
             <p style={styles.subtitle}>Garmin Connect · Last 8 Weeks</p>
           </div>
           <button
