@@ -11,14 +11,29 @@ env:
   API_URL: https://cggk3mq6z9.execute-api.us-east-1.amazonaws.com/Prod
 
 jobs:
+  # Detect which parts of the repo changed
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      backend: ${{ steps.filter.outputs.backend }}
+      frontend: ${{ steps.filter.outputs.frontend }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            backend:
+              - 'lambda/**'
+              - 'template.yaml'
+            frontend:
+              - 'frontend/**'
+
   deploy-backend:
     name: Deploy Lambda + API Gateway
+    needs: changes
+    if: needs.changes.outputs.backend == 'true'
     runs-on: ubuntu-latest
-    # Only run if lambda/ or template.yaml changed
-    if: |
-      contains(github.event.commits[0].modified, 'lambda/') ||
-      contains(github.event.commits[0].added, 'lambda/') ||
-      contains(github.event.commits[0].modified, 'template.yaml')
     steps:
       - uses: actions/checkout@v4
 
@@ -50,11 +65,9 @@ jobs:
 
   deploy-frontend:
     name: Deploy Frontend to S3 + CloudFront
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true'
     runs-on: ubuntu-latest
-    # Only run if frontend/ changed
-    if: |
-      contains(toJson(github.event.commits[0].modified), 'frontend/') ||
-      contains(toJson(github.event.commits[0].added), 'frontend/')
     steps:
       - uses: actions/checkout@v4
 
@@ -78,12 +91,10 @@ jobs:
 
       - name: Sync to S3
         run: |
-          # Long-cache all assets (hashed filenames)
           aws s3 sync frontend/dist s3://${{ env.FRONTEND_BUCKET }} \
             --delete \
             --cache-control "public, max-age=31536000" \
             --exclude "index.html"
-          # No-cache index.html so browsers always fetch latest
           aws s3 cp frontend/dist/index.html s3://${{ env.FRONTEND_BUCKET }}/index.html \
             --cache-control "no-cache"
 
