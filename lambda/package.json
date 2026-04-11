@@ -1,0 +1,10 @@
+{
+  "name": "run-recap-lambda",
+  "version": "1.0.0",
+  "private": true,
+  "main": "handler.js",
+  "dependencies": {
+    "@aws-sdk/client-secrets-manager": "^3.0.0",
+    "garmin-connect": "^1.6.2"
+  }
+}
