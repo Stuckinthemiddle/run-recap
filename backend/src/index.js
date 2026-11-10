@@ -50,6 +50,8 @@ app.get('/api/run-data', async (req, res) => {
       weekMap[key] = (weekMap[key] || 0) + miles;
     }
 
+    const lapPaceMap = {}; // key → [{pace, miles}, ...]
+
     const weeks = [];
     const today = new Date(now);
     today.setHours(0, 0, 0, 0);
@@ -65,6 +67,7 @@ app.get('/api/run-data', async (req, res) => {
         weekStart: key,
         miles: parseFloat((weekMap[key] || 0).toFixed(2)),
         isComplete: sunday < today,
+        lapPaces: lapPaceMap[key] || [],
       });
     }
 
@@ -88,6 +91,9 @@ app.get('/api/run-data', async (req, res) => {
       const activityName = activity.activityName || 'Run';
 
       const laps = splits?.lapDTOs ?? splits?.laps ?? [];
+      const activityMonday = getMondayOfWeek(activityDate);
+      const activityWeekKey = activityMonday.toISOString().split('T')[0];
+      if (!lapPaceMap[activityWeekKey]) lapPaceMap[activityWeekKey] = [];
 
       for (const lap of laps) {
         const distM = lap.distance ?? 0;
@@ -96,6 +102,9 @@ app.get('/api/run-data', async (req, res) => {
 
         const speedMs = distM / durSec;
         const paceMileMin = 1609.344 / speedMs / 60;
+        const lapMiles = distM / 1609.344;
+
+        lapPaceMap[activityWeekKey].push({ pace: parseFloat(paceMileMin.toFixed(4)), miles: parseFloat(lapMiles.toFixed(3)) });
 
         // Fastest lap: any lap ≥ 800 m
         if (distM >= 800) {

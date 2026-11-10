@@ -57,6 +57,8 @@ exports.handler = async (event) => {
       weekMap[key] = (weekMap[key] || 0) + miles;
     }
 
+    const lapPaceMap = {};
+
     const weeks = [];
     const today = new Date(now);
     today.setHours(0, 0, 0, 0);
@@ -72,6 +74,7 @@ exports.handler = async (event) => {
         weekStart: key,
         miles: parseFloat((weekMap[key] || 0).toFixed(2)),
         isComplete: sunday < today,
+        lapPaces: lapPaceMap[key] || [],
       });
     }
 
@@ -92,6 +95,9 @@ exports.handler = async (event) => {
       const activityDate = new Date(activity.startTimeLocal || activity.startTimeGMT);
       const activityName = activity.activityName || 'Run';
       const laps = splits?.lapDTOs ?? splits?.laps ?? [];
+      const activityMonday = getMondayOfWeek(activityDate);
+      const activityWeekKey = activityMonday.toISOString().split('T')[0];
+      if (!lapPaceMap[activityWeekKey]) lapPaceMap[activityWeekKey] = [];
 
       for (const lap of laps) {
         const distM = lap.distance ?? 0;
@@ -100,6 +106,9 @@ exports.handler = async (event) => {
 
         const speedMs = distM / durSec;
         const paceMileMin = 1609.344 / speedMs / 60;
+        const lapMiles = distM / 1609.344;
+
+        lapPaceMap[activityWeekKey].push({ pace: parseFloat(paceMileMin.toFixed(4)), miles: parseFloat(lapMiles.toFixed(3)) });
 
         if (distM >= 800) {
           if (!fastestLap || paceMileMin < fastestLap.paceMileMin) {
