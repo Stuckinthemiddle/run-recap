@@ -51,25 +51,8 @@ app.get('/api/run-data', async (req, res) => {
     }
 
     const lapPaceMap = {}; // key → [{pace, miles}, ...]
-
-    const weeks = [];
     const today = new Date(now);
     today.setHours(0, 0, 0, 0);
-
-    for (let i = 7; i >= 0; i--) {
-      const monday = getMondayOfWeek(new Date(now.getTime() - i * 7 * 24 * 60 * 60 * 1000));
-      const sunday = new Date(monday);
-      sunday.setDate(monday.getDate() + 6);
-      sunday.setHours(23, 59, 59, 999);
-      const key = monday.toISOString().split('T')[0];
-      weeks.push({
-        week: formatWeekLabel(monday),
-        weekStart: key,
-        miles: parseFloat((weekMap[key] || 0).toFixed(2)),
-        isComplete: sunday < today,
-        lapPaces: lapPaceMap[key] || [],
-      });
-    }
 
     // ── Fetch splits via the Garmin activity-service API ─────────────
     // garmin-connect doesn't expose a getActivitySplits method, so we use
@@ -136,6 +119,23 @@ app.get('/api/run-data', async (req, res) => {
         }
       }
     });
+
+    // ── Build weeks array now that lapPaceMap is fully populated ─────
+    const weeks = [];
+    for (let i = 7; i >= 0; i--) {
+      const monday = getMondayOfWeek(new Date(now.getTime() - i * 7 * 24 * 60 * 60 * 1000));
+      const sunday = new Date(monday);
+      sunday.setDate(monday.getDate() + 6);
+      sunday.setHours(23, 59, 59, 999);
+      const key = monday.toISOString().split('T')[0];
+      weeks.push({
+        week: formatWeekLabel(monday),
+        weekStart: key,
+        miles: parseFloat((weekMap[key] || 0).toFixed(2)),
+        isComplete: sunday < today,
+        lapPaces: lapPaceMap[key] || [],
+      });
+    }
 
     // Fallback for fastest mile: if no lap landed in the mile window (can happen
     // when manual laps break up auto-laps), use the best average pace from any
