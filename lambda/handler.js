@@ -58,13 +58,20 @@ exports.handler = async (event) => {
     }
 
     const weeks = [];
+    const today = new Date(now);
+    today.setHours(0, 0, 0, 0);
+
     for (let i = 7; i >= 0; i--) {
       const monday = getMondayOfWeek(new Date(now.getTime() - i * 7 * 24 * 60 * 60 * 1000));
+      const sunday = new Date(monday);
+      sunday.setDate(monday.getDate() + 6);
+      sunday.setHours(23, 59, 59, 999);
       const key = monday.toISOString().split('T')[0];
       weeks.push({
         week: formatWeekLabel(monday),
         weekStart: key,
         miles: parseFloat((weekMap[key] || 0).toFixed(2)),
+        isComplete: sunday < today,
       });
     }
 

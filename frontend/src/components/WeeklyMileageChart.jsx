@@ -7,14 +7,16 @@ import {
   Tooltip,
   ResponsiveContainer,
   Cell,
-  ReferenceLine,
 } from 'recharts';
 
 const CustomTooltip = ({ active, payload, label }) => {
   if (active && payload && payload.length) {
+    const entry = payload[0].payload;
     return (
       <div style={styles.tooltip}>
-        <p style={styles.tooltipLabel}>Week of {label}</p>
+        <p style={styles.tooltipLabel}>
+          Week of {label}{!entry.isComplete ? ' · in progress' : ''}
+        </p>
         <p style={styles.tooltipValue}>{payload[0].value.toFixed(2)} miles</p>
       </div>
     );
@@ -23,7 +25,10 @@ const CustomTooltip = ({ active, payload, label }) => {
 };
 
 export default function WeeklyMileageChart({ data }) {
-  const maxMiles = Math.max(...data.map((d) => d.miles), 1);
+  const completeWeeks = data.filter((d) => d.isComplete);
+  const totalMiles = completeWeeks.reduce((sum, d) => sum + d.miles, 0);
+  const avgMiles = completeWeeks.length > 0 ? totalMiles / completeWeeks.length : 0;
+  const maxMiles = Math.max(...completeWeeks.map((d) => d.miles), 1);
 
   return (
     <div style={styles.container}>
@@ -46,18 +51,18 @@ export default function WeeklyMileageChart({ data }) {
           />
           <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.05)' }} />
           <Bar dataKey="miles" radius={[4, 4, 0, 0]}>
-            {data.map((entry, index) => (
-              <Cell
-                key={index}
-                fill={entry.miles === maxMiles ? '#4ade80' : '#22c55e99'}
-              />
-            ))}
+            {data.map((entry, index) => {
+              if (!entry.isComplete) return <Cell key={index} fill="#22c55e44" />;
+              if (entry.miles === maxMiles) return <Cell key={index} fill="#4ade80" />;
+              return <Cell key={index} fill="#22c55e99" />;
+            })}
           </Bar>
         </BarChart>
       </ResponsiveContainer>
       <p style={styles.summary}>
-        Total: <strong>{data.reduce((sum, d) => sum + d.miles, 0).toFixed(1)} miles</strong> &nbsp;|&nbsp;
-        Avg: <strong>{(data.reduce((sum, d) => sum + d.miles, 0) / data.length).toFixed(1)} mi/week</strong>
+        Total: <strong>{totalMiles.toFixed(1)} miles</strong> &nbsp;|&nbsp;
+        Avg: <strong>{avgMiles.toFixed(1)} mi/week</strong>
+        <span style={styles.weeksNote}> ({completeWeeks.length} full weeks)</span>
       </p>
     </div>
   );
@@ -98,5 +103,9 @@ const styles = {
     color: '#888',
     fontSize: 13,
     textAlign: 'right',
+  },
+  weeksNote: {
+    color: '#555',
+    fontSize: 12,
   },
 };
